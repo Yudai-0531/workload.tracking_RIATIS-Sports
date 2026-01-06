@@ -168,13 +168,23 @@ function onUserSelect(e) {
 }
 
 function openAddUserModal() {
-    document.getElementById('add-user-modal').classList.add('show');
+    const modal = document.getElementById('add-user-modal');
+    modal.classList.add('show');
     document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-name').focus();
 }
 
 function closeAddUserModal() {
     document.getElementById('add-user-modal').classList.remove('show');
 }
+
+// モーダル外クリックで閉じる
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('add-user-modal');
+    if (e.target === modal) {
+        closeAddUserModal();
+    }
+});
 
 async function addNewUser() {
     const name = document.getElementById('new-user-name').value.trim();
