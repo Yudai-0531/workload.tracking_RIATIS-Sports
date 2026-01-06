@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Are you fighting 24 hours a day?</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <h1 class="logo">⚡ FIGHTING 24H ⚡</h1>
+            <p class="tagline">命を燃やせ。休息も戦いだ。</p>
+        </header>
+
+        <!-- ナビゲーション -->
+        <nav class="nav">
+            <button class="nav-btn active" data-page="entry">📝 データ記録</button>
+            <button class="nav-btn" data-page="dashboard">📊 My Page</button>
+        </nav>
+
+        <!-- データ記録ページ -->
+        <div id="entry-page" class="page active">
+            <div class="card">
+                <h2 class="card-title">🔥 FIGHT RECORD</h2>
+                
+                <!-- ユーザー選択 -->
+                <div class="form-group">
+                    <label for="user-select">戦士の名前</label>
+                    <div class="user-select-wrapper">
+                        <select id="user-select" class="input-field">
+                            <option value="">選択してください...</option>
+                        </select>
+                        <button id="add-user-btn" class="btn-secondary">➕ 新規登録</button>
+                    </div>
+                </div>
+
+                <!-- 打刻ボタン -->
+                <div class="form-group">
+                    <div class="clock-buttons">
+                        <button id="clock-in-btn" class="btn-primary">
+                            <span class="btn-icon">🚀</span>
+                            <span class="btn-text">FIGHT START</span>
+                        </button>
+                        <button id="clock-out-btn" class="btn-primary" disabled>
+                            <span class="btn-icon">🏁</span>
+                            <span class="btn-text">FIGHT END</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 休憩時間入力 -->
+                <div class="form-group">
+                    <label for="break-time">休憩時間（分）</label>
+                    <input type="number" id="break-time" class="input-field" min="0" value="0" placeholder="60">
+                </div>
+
+                <!-- 現在のステータス表示 -->
+                <div id="status-display" class="status-display">
+                    <p class="status-text">準備完了。戦いを始めよう。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ダッシュボードページ -->
+        <div id="dashboard-page" class="page">
+            <div class="card">
+                <h2 class="card-title">📊 MY DASHBOARD</h2>
+                
+                <!-- 名言表示 -->
+                <div class="quote-box">
+                    <p id="motivational-quote" class="quote-text"></p>
+                </div>
+
+                <!-- 期間切り替え -->
+                <div class="time-frame-toggle">
+                    <button class="toggle-btn active" data-frame="daily">Daily</button>
+                    <button class="toggle-btn" data-frame="weekly">Weekly</button>
+                    <button class="toggle-btn" data-frame="yearly">Yearly</button>
+                </div>
+
+                <!-- 統計表示 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>今週の戦闘時間</h3>
+                        <p class="stat-value" id="weekly-hours">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>今日の戦闘時間</h3>
+                        <p class="stat-value" id="daily-hours">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>目標達成率</h3>
+                        <p class="stat-value" id="goal-progress">0%</p>
+                    </div>
+                </div>
+
+                <!-- 目標設定 -->
+                <div class="settings-section">
+                    <h3>⚙️ 設定</h3>
+                    <div class="form-group">
+                        <label for="weekly-goal">週間目標時間（時間）</label>
+                        <input type="number" id="weekly-goal" class="input-field" min="0" value="40">
+                    </div>
+                    <div class="form-group">
+                        <label for="weekly-vacation">週あたりの休日数（日）</label>
+                        <input type="number" id="weekly-vacation" class="input-field" min="0" max="7" value="2">
+                    </div>
+                    <button id="save-settings-btn" class="btn-secondary">💾 設定を保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル：新規ユーザー登録 -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <h2>新しい戦士を登録</h2>
+            <div class="form-group">
+                <label for="new-user-name">氏名</label>
+                <input type="text" id="new-user-name" class="input-field" placeholder="山田 太郎">
+            </div>
+            <div class="modal-buttons">
+                <button id="cancel-add-user" class="btn-secondary">キャンセル</button>
+                <button id="confirm-add-user" class="btn-primary">登録</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
