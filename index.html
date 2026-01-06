@@ -100,6 +100,18 @@
                     </div>
                 </div>
 
+                <!-- 労働時間グラフ -->
+                <div class="chart-section">
+                    <h3>📈 労働時間推移</h3>
+                    <div class="chart-toggle">
+                        <button class="chart-toggle-btn active" data-chart-type="daily">Daily</button>
+                        <button class="chart-toggle-btn" data-chart-type="weekly">Weekly</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="work-hours-chart"></canvas>
+                    </div>
+                </div>
+
                 <!-- 目標設定 -->
                 <div class="settings-section">
                     <h3>⚙️ 設定</h3>
@@ -133,6 +145,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -374,6 +374,56 @@ label {
 }
 
 /* ==========================================
+   グラフセクション
+   ========================================== */
+.chart-section {
+    border-top: 2px solid var(--gray);
+    padding-top: 30px;
+    margin-bottom: 30px;
+}
+
+.chart-section h3 {
+    margin-bottom: 20px;
+    color: var(--electric-blue);
+}
+
+.chart-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.chart-toggle-btn {
+    padding: 10px 25px;
+    background: var(--dark-navy);
+    border: 2px solid var(--gray);
+    border-radius: 5px;
+    color: var(--white);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chart-toggle-btn:hover {
+    border-color: var(--electric-blue);
+}
+
+.chart-toggle-btn.active {
+    background: var(--electric-blue);
+    border-color: var(--electric-blue);
+    color: var(--dark-navy);
+}
+
+.chart-container {
+    background: var(--darker-navy);
+    border: 2px solid var(--electric-blue);
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 300px;
+}
+
+/* ==========================================
    設定セクション
    ========================================== */
 .settings-section {

@@ -11,6 +11,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 // ==========================================
 let currentUser = null;
 let currentWorkLog = null;
+let workHoursChart = null;
+let currentChartType = 'daily';
 
 // 名言リスト
 const motivationalQuotes = [
@@ -107,6 +109,11 @@ function setupEventListeners() {
     document.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => switchTimeFrame(btn.dataset.frame));
     });
+    
+    // グラフ切り替え
+    document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
+    });
 }
 
 // ==========================================
@@ -124,6 +131,7 @@ function switchPage(pageName) {
     // ダッシュボードの場合は統計を更新
     if (pageName === 'dashboard' && currentUser) {
         updateDashboard();
+        updateWorkHoursChart();
     }
 }
 
@@ -463,4 +471,218 @@ function switchTimeFrame(frame) {
     
     // TODO: グラフの表示期間を変更する処理（Phase 2で実装）
     console.log('📊 期間切り替え:', frame);
+}
+
+// ==========================================
+// グラフ機能
+// ==========================================
+function switchChartType(chartType) {
+    // ボタンのアクティブ状態切り替え
+    document.querySelectorAll('.chart-toggle-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-chart-type="${chartType}"]`).classList.add('active');
+    
+    currentChartType = chartType;
+    updateWorkHoursChart();
+    
+    console.log('📊 グラフ切り替え:', chartType);
+}
+
+async function updateWorkHoursChart() {
+    if (!currentUser) return;
+    
+    try {
+        let labels = [];
+        let data = [];
+        let startDate, endDate;
+        
+        if (currentChartType === 'daily') {
+            // 過去7日間のデータを取得
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(endDate.getDate() - 6);
+            
+            // 日付ラベル作成
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                labels.push(`${date.getMonth() + 1}/${date.getDate()}`);
+            }
+            
+            // データ取得
+            const { data: logs, error } = await supabaseClient
+                .from('work_logs')
+                .select('*')
+                .eq('user_id', currentUser)
+                .gte('date', startDate.toISOString().split('T')[0])
+                .lte('date', endDate.toISOString().split('T')[0])
+                .not('end_time', 'is', null);
+            
+            if (error) throw error;
+            
+            // 日付ごとに集計
+            const dailyHours = {};
+            logs.forEach(log => {
+                const date = log.date;
+                if (!dailyHours[date]) {
+                    dailyHours[date] = 0;
+                }
+                const start = new Date(log.start_time);
+                const end = new Date(log.end_time);
+                const minutes = Math.floor((end - start) / 1000 / 60) - (log.break_time_minutes || 0);
+                dailyHours[date] += Math.max(0, minutes) / 60;
+            });
+            
+            // データ配列作成
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                data.push(dailyHours[dateStr] || 0);
+            }
+            
+        } else if (currentChartType === 'weekly') {
+            // 過去4週間のデータを取得
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(endDate.getDate() - 27); // 4週間前
+            
+            // 週のラベル作成
+            for (let i = 0; i < 4; i++) {
+                const weekStart = new Date(startDate);
+                weekStart.setDate(startDate.getDate() + (i * 7));
+                labels.push(`${weekStart.getMonth() + 1}/${weekStart.getDate()}週`);
+            }
+            
+            // データ取得
+            const { data: logs, error } = await supabaseClient
+                .from('work_logs')
+                .select('*')
+                .eq('user_id', currentUser)
+                .gte('date', startDate.toISOString().split('T')[0])
+                .lte('date', endDate.toISOString().split('T')[0])
+                .not('end_time', 'is', null);
+            
+            if (error) throw error;
+            
+            // 週ごとに集計
+            const weeklyHours = {};
+            logs.forEach(log => {
+                const logDate = new Date(log.date);
+                const weekIndex = Math.floor((logDate - startDate) / (7 * 24 * 60 * 60 * 1000));
+                
+                if (!weeklyHours[weekIndex]) {
+                    weeklyHours[weekIndex] = 0;
+                }
+                const start = new Date(log.start_time);
+                const end = new Date(log.end_time);
+                const minutes = Math.floor((end - start) / 1000 / 60) - (log.break_time_minutes || 0);
+                weeklyHours[weekIndex] += Math.max(0, minutes) / 60;
+            });
+            
+            // データ配列作成
+            for (let i = 0; i < 4; i++) {
+                data.push(weeklyHours[i] || 0);
+            }
+        }
+        
+        // グラフ描画
+        renderWorkHoursChart(labels, data);
+        
+        console.log('✅ グラフ更新完了:', currentChartType);
+        
+    } catch (error) {
+        console.error('❌ グラフ更新エラー:', error);
+    }
+}
+
+function renderWorkHoursChart(labels, data) {
+    const ctx = document.getElementById('work-hours-chart');
+    
+    // 既存のグラフを破棄
+    if (workHoursChart) {
+        workHoursChart.destroy();
+    }
+    
+    // 新しいグラフを作成
+    workHoursChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentChartType === 'daily' ? '労働時間 (時間/日)' : '労働時間 (時間/週)',
+                data: data,
+                borderColor: '#ff0055',
+                backgroundColor: 'rgba(255, 0, 85, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#ff0055',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                    titleColor: '#00d9ff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#00d9ff',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y.toFixed(1)}時間`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#c0c0c0',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(192, 192, 192, 0.1)',
+                        borderColor: '#666666'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#c0c0c0',
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(192, 192, 192, 0.1)',
+                        borderColor: '#666666'
+                    }
+                }
+            }
+        }
+    });
 }
