@@ -381,16 +381,20 @@ async function updateDashboard() {
         const dailyHours = calculateTotalHours(todayLogs);
         document.getElementById('daily-hours').textContent = `${dailyHours.toFixed(1)}h`;
         
-        // 今週の労働時間計算（休日ボーナス含む）
+        // 今週の労働時間計算（休日数は含めない）
         const weeklyWorkHours = calculateTotalHours(weekLogs);
-        const vacationBonus = (userData.weekly_vacation_days || 0) * 24;
-        const totalWeeklyHours = weeklyWorkHours + vacationBonus;
-        document.getElementById('weekly-hours').textContent = `${totalWeeklyHours.toFixed(1)}h`;
+        document.getElementById('weekly-hours').textContent = `${weeklyWorkHours.toFixed(1)}h`;
         
         // 目標達成率計算
         const goalHours = userData.weekly_goal_hours || 40;
-        const progress = Math.min(100, (totalWeeklyHours / goalHours * 100));
+        const progress = Math.min(100, (weeklyWorkHours / goalHours * 100));
         document.getElementById('goal-progress').textContent = `${progress.toFixed(0)}%`;
+        
+        // 1日あたりの目標労働時間を計算（休日を考慮）
+        const vacationDays = userData.weekly_vacation_days || 0;
+        const workingDaysPerWeek = 7 - vacationDays;
+        const dailyTargetHours = workingDaysPerWeek > 0 ? (goalHours / workingDaysPerWeek).toFixed(1) : 0;
+        document.getElementById('daily-target-hours').textContent = `${dailyTargetHours}h`;
         
         console.log('✅ ダッシュボード更新完了');
         
