@@ -4,7 +4,7 @@
 const SUPABASE_URL = 'https://nnvdldmdupsxgefiywar.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5udmRsZG1kdXBzeGdlZml5d2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDM4MzMsImV4cCI6MjA4MzI3OTgzM30.4xphygeAUxnfYiR6ixFIbFaUZPPKJyLAuZndQMYJPUc';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ==========================================
 // グローバル変数
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initializeDatabase() {
     try {
         // usersテーブルの存在確認
-        const { data: users, error: usersError } = await supabase
+        const { data: users, error: usersError } = await supabaseClient
             .from('users')
             .select('*')
             .limit(1);
@@ -63,7 +63,7 @@ async function initializeDatabase() {
         }
         
         // work_logsテーブルの存在確認
-        const { data: logs, error: logsError } = await supabase
+        const { data: logs, error: logsError } = await supabaseClient
             .from('work_logs')
             .select('*')
             .limit(1);
@@ -132,7 +132,7 @@ function switchPage(pageName) {
 // ==========================================
 async function loadUsers() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('users')
             .select('*')
             .order('name');
@@ -195,7 +195,7 @@ async function addNewUser() {
     }
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('users')
             .insert([
                 { 
@@ -238,7 +238,7 @@ async function clockIn() {
         const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
         
         // 今日の未完了ログがあるか確認
-        const { data: existingLogs, error: checkError } = await supabase
+        const { data: existingLogs, error: checkError } = await supabaseClient
             .from('work_logs')
             .select('*')
             .eq('user_id', currentUser)
@@ -253,7 +253,7 @@ async function clockIn() {
         }
         
         // 新規ログ作成
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('work_logs')
             .insert([
                 {
@@ -293,7 +293,7 @@ async function clockOut() {
         const breakTime = parseInt(document.getElementById('break-time').value) || 0;
         
         // ログ更新
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('work_logs')
             .update({
                 end_time: now.toISOString(),
@@ -343,7 +343,7 @@ async function updateDashboard() {
     
     try {
         // ユーザー設定取得
-        const { data: userData, error: userError } = await supabase
+        const { data: userData, error: userError } = await supabaseClient
             .from('users')
             .select('*')
             .eq('id', currentUser)
@@ -357,7 +357,7 @@ async function updateDashboard() {
         
         // 今日のデータ取得
         const today = new Date().toISOString().split('T')[0];
-        const { data: todayLogs, error: todayError } = await supabase
+        const { data: todayLogs, error: todayError } = await supabaseClient
             .from('work_logs')
             .select('*')
             .eq('user_id', currentUser)
@@ -368,7 +368,7 @@ async function updateDashboard() {
         
         // 今週のデータ取得
         const weekStart = getWeekStart();
-        const { data: weekLogs, error: weekError } = await supabase
+        const { data: weekLogs, error: weekError } = await supabaseClient
             .from('work_logs')
             .select('*')
             .eq('user_id', currentUser)
@@ -431,7 +431,7 @@ async function saveSettings() {
         const weeklyGoal = parseInt(document.getElementById('weekly-goal').value);
         const weeklyVacation = parseInt(document.getElementById('weekly-vacation').value);
         
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('users')
             .update({
                 weekly_goal_hours: weeklyGoal,
