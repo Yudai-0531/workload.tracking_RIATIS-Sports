@@ -92,10 +92,10 @@ async function initializeDatabase() {
 // ==========================================
 function setupEventListeners() {
     // ログインページ
-    document.getElementById('login-btn').addEventListener('click', handleLogin);
-    document.getElementById('show-register-btn').addEventListener('click', openAddUserModal);
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('login-password').addEventListener('keypress', (e) => {
+    safeAddEventListener('login-btn', 'click', handleLogin);
+    safeAddEventListener('show-register-btn', 'click', openAddUserModal);
+    safeAddEventListener('logout-btn', 'click', handleLogout);
+    safeAddEventListener('login-password', 'keypress', (e) => {
         if (e.key === 'Enter') handleLogin();
     });
     
@@ -105,17 +105,16 @@ function setupEventListeners() {
     });
     
     // データ記録ページ
-    document.getElementById('clock-in-btn').addEventListener('click', clockIn);
-    document.getElementById('clock-out-btn').addEventListener('click', clockOut);
-    document.getElementById('add-user-btn').addEventListener('click', openAddUserModal);
-    document.getElementById('user-select').addEventListener('change', onUserSelect);
+    safeAddEventListener('clock-in-btn', 'click', clockIn);
+    safeAddEventListener('clock-out-btn', 'click', clockOut);
+    safeAddEventListener('user-select', 'change', onUserSelect);
     
     // モーダル
-    document.getElementById('cancel-add-user').addEventListener('click', closeAddUserModal);
-    document.getElementById('confirm-add-user').addEventListener('click', addNewUser);
+    safeAddEventListener('cancel-add-user', 'click', closeAddUserModal);
+    safeAddEventListener('confirm-add-user', 'click', addNewUser);
     
     // ダッシュボード
-    document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+    safeAddEventListener('save-settings-btn', 'click', saveSettings);
     
     // 期間切り替え
     document.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -126,6 +125,16 @@ function setupEventListeners() {
     document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
     });
+}
+
+// 安全にイベントリスナーを追加するヘルパー関数
+function safeAddEventListener(elementId, eventType, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.addEventListener(eventType, handler);
+    } else {
+        console.warn(`⚠️ 要素が見つかりません: ${elementId}`);
+    }
 }
 
 // ==========================================
@@ -432,6 +441,32 @@ function openAddUserModal() {
     document.getElementById('new-user-password').value = '';
     document.getElementById('new-user-password-confirm').value = '';
     document.getElementById('new-user-name').focus();
+    
+    // Enterキーで次のフィールドへ移動、または登録実行
+    const nameInput = document.getElementById('new-user-name');
+    const passwordInput = document.getElementById('new-user-password');
+    const passwordConfirmInput = document.getElementById('new-user-password-confirm');
+    
+    nameInput.onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            passwordInput.focus();
+        }
+    };
+    
+    passwordInput.onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            passwordConfirmInput.focus();
+        }
+    };
+    
+    passwordConfirmInput.onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addNewUser();
+        }
+    };
 }
 
 function closeAddUserModal() {
