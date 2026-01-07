@@ -12,8 +12,12 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 let currentUser = null;
 let currentWorkLog = null;
 let workHoursChart = null;
+let adminWorkHoursChart = null;
 let currentChartType = 'daily';
+let currentAdminChartType = 'daily';
+let isAdminMode = false;
 const LOGIN_EXPIRY_DAYS = 30; // ログイン有効期限（日数）
+const ADMIN_PASSWORD = '24680Riatis'; // 管理者パスワード
 
 // 名言リスト
 const motivationalQuotes = [
@@ -93,6 +97,7 @@ async function initializeDatabase() {
 function setupEventListeners() {
     // ログインページ
     safeAddEventListener('login-btn', 'click', handleLogin);
+    safeAddEventListener('admin-login-btn', 'click', handleAdminLogin);
     safeAddEventListener('show-register-btn', 'click', openAddUserModal);
     safeAddEventListener('logout-btn', 'click', handleLogout);
     safeAddEventListener('login-password', 'keypress', (e) => {
@@ -123,7 +128,12 @@ function setupEventListeners() {
     
     // グラフ切り替え
     document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
+        if (btn.dataset.chartType) {
+            btn.addEventListener('click', () => switchChartType(btn.dataset.chartType));
+        }
+        if (btn.dataset.adminChartType) {
+            btn.addEventListener('click', () => switchAdminChartType(btn.dataset.adminChartType));
+        }
     });
 }
 
@@ -153,6 +163,11 @@ function switchPage(pageName) {
     if (pageName === 'dashboard' && currentUser) {
         updateDashboard();
         updateWorkHoursChart();
+    }
+    
+    // 管理者ページの場合は管理者ダッシュボードを更新
+    if (pageName === 'admin' && isAdminMode) {
+        updateAdminDashboard();
     }
 }
 
@@ -245,6 +260,42 @@ async function handleLogin() {
     }
 }
 
+function handleAdminLogin() {
+    const password = prompt('管理者パスワードを入力してください:');
+    
+    if (password === null) {
+        // キャンセルされた
+        return;
+    }
+    
+    if (password !== ADMIN_PASSWORD) {
+        alert('パスワードが正しくありません');
+        return;
+    }
+    
+    // 管理者モードに設定
+    isAdminMode = true;
+    
+    // ログイン情報を保存（管理者モード）
+    const loginData = {
+        isAdmin: true,
+        loginTime: Date.now(),
+        expiryTime: Date.now() + (LOGIN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+    };
+    localStorage.setItem('fighting24h_login', JSON.stringify(loginData));
+    
+    console.log('✅ 管理者ログイン成功');
+    
+    // メインアプリを表示
+    showMainApp();
+    
+    // 管理者ナビゲーションボタンを表示
+    document.getElementById('admin-nav-btn').style.display = 'block';
+    
+    // 管理者ページに切り替え
+    switchPage('admin');
+}
+
 function handleLogout() {
     if (!confirm('ログアウトしますか？')) {
         return;
@@ -254,9 +305,13 @@ function handleLogout() {
     localStorage.removeItem('fighting24h_login');
     currentUser = null;
     currentWorkLog = null;
+    isAdminMode = false;
     
     // ログインページを表示
     showLoginPage();
+    
+    // 管理者ナビゲーションボタンを非表示
+    document.getElementById('admin-nav-btn').style.display = 'none';
     
     // 入力欄をクリア
     document.getElementById('login-user-select').value = '';
@@ -286,7 +341,22 @@ function checkLoginState() {
             return;
         }
         
-        // ログイン状態を復元
+        // 管理者モードの場合
+        if (loginData.isAdmin) {
+            isAdminMode = true;
+            console.log('✅ 管理者ログイン状態を復元');
+            
+            showMainApp();
+            
+            // 管理者ナビゲーションボタンを表示
+            document.getElementById('admin-nav-btn').style.display = 'block';
+            
+            // 管理者ページに切り替え
+            switchPage('admin');
+            return;
+        }
+        
+        // 通常ユーザーのログイン状態を復元
         currentUser = loginData.userId;
         console.log('✅ ログイン状態を復元:', loginData.userName);
         
@@ -934,6 +1004,394 @@ function renderWorkHoursChart(labels, data) {
                 fill: true,
                 tension: 0.4,
                 pointBackgroundColor: '#ff0055',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                    titleColor: '#00d9ff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#00d9ff',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y.toFixed(1)}時間`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#c0c0c0',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(192, 192, 192, 0.1)',
+                        borderColor: '#666666'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#c0c0c0',
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(192, 192, 192, 0.1)',
+                        borderColor: '#666666'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 管理者ページ機能
+// ==========================================
+async function updateAdminDashboard() {
+    try {
+        console.log('🔄 管理者ダッシュボード更新開始');
+        
+        // 全ユーザー取得
+        const { data: allUsers, error: usersError } = await supabaseClient
+            .from('users')
+            .select('*')
+            .order('name');
+        
+        if (usersError) throw usersError;
+        
+        // 総戦士数
+        document.getElementById('total-warriors').textContent = `${allUsers.length}人`;
+        
+        // 今週のデータ取得
+        const weekStart = getWeekStart();
+        const { data: weekLogs, error: weekError } = await supabaseClient
+            .from('work_logs')
+            .select('*')
+            .gte('date', weekStart)
+            .not('end_time', 'is', null);
+        
+        if (weekError) throw weekError;
+        
+        // 今日のデータ取得
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayLogs, error: todayError } = await supabaseClient
+            .from('work_logs')
+            .select('*')
+            .eq('date', today)
+            .not('end_time', 'is', null);
+        
+        if (todayError) throw todayError;
+        
+        // アクティブユーザー数（今週ログがあるユーザー）
+        const activeUserIds = new Set(weekLogs.map(log => log.user_id));
+        document.getElementById('active-warriors').textContent = `${activeUserIds.size}人`;
+        
+        // 組織平均（Daily）
+        const usersWithTodayLogs = new Set(todayLogs.map(log => log.user_id));
+        const dailyTotalHours = calculateTotalHours(todayLogs);
+        const dailyAvg = usersWithTodayLogs.size > 0 ? dailyTotalHours / usersWithTodayLogs.size : 0;
+        document.getElementById('org-daily-avg').textContent = `${dailyAvg.toFixed(1)}h`;
+        
+        // 組織平均（Weekly）
+        const weeklyTotalHours = calculateTotalHours(weekLogs);
+        const weeklyAvg = activeUserIds.size > 0 ? weeklyTotalHours / activeUserIds.size : 0;
+        document.getElementById('org-weekly-avg').textContent = `${weeklyAvg.toFixed(1)}h`;
+        
+        // ランキング表示
+        await displayRanking(allUsers, weekLogs);
+        
+        // ユーザー管理リスト表示
+        await displayUserManagement(allUsers);
+        
+        // グラフ更新
+        await updateAdminWorkHoursChart();
+        
+        console.log('✅ 管理者ダッシュボード更新完了');
+        
+    } catch (error) {
+        console.error('❌ 管理者ダッシュボード更新エラー:', error);
+        alert('管理者ダッシュボードの更新に失敗しました: ' + error.message);
+    }
+}
+
+async function displayRanking(users, weekLogs) {
+    // ユーザーごとの労働時間を計算
+    const userHours = {};
+    
+    users.forEach(user => {
+        userHours[user.id] = {
+            name: user.name,
+            hours: 0
+        };
+    });
+    
+    weekLogs.forEach(log => {
+        const start = new Date(log.start_time);
+        const end = new Date(log.end_time);
+        const minutes = Math.floor((end - start) / 1000 / 60) - (log.break_time_minutes || 0);
+        const hours = Math.max(0, minutes) / 60;
+        
+        if (userHours[log.user_id]) {
+            userHours[log.user_id].hours += hours;
+        }
+    });
+    
+    // 労働時間でソート
+    const ranking = Object.entries(userHours)
+        .map(([userId, data]) => ({ userId, ...data }))
+        .sort((a, b) => b.hours - a.hours)
+        .slice(0, 5); // トップ5
+    
+    // ランキング表示
+    const rankingList = document.getElementById('ranking-list');
+    rankingList.innerHTML = '';
+    
+    ranking.forEach((user, index) => {
+        const rank = index + 1;
+        const item = document.createElement('div');
+        item.className = `ranking-item rank-${rank}`;
+        
+        let medal = '';
+        if (rank === 1) medal = '🥇';
+        else if (rank === 2) medal = '🥈';
+        else if (rank === 3) medal = '🥉';
+        
+        item.innerHTML = `
+            <div class="rank-number">${medal || rank}</div>
+            <div class="ranking-info">
+                <div class="ranking-name">${user.name}</div>
+                <div class="ranking-hours">${user.hours.toFixed(1)}h</div>
+            </div>
+        `;
+        
+        rankingList.appendChild(item);
+    });
+    
+    console.log('✅ ランキング表示完了');
+}
+
+async function displayUserManagement(users) {
+    const userList = document.getElementById('user-management-list');
+    userList.innerHTML = '';
+    
+    users.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'user-item';
+        
+        item.innerHTML = `
+            <div class="user-info">
+                <div class="user-name">${user.name}</div>
+                <div class="user-details">週間目標: ${user.weekly_goal_hours || 40}h | 休日: ${user.weekly_vacation_days || 2}日</div>
+            </div>
+            <button class="btn-delete" data-user-id="${user.id}" data-user-name="${user.name}">🗑️ 削除</button>
+        `;
+        
+        userList.appendChild(item);
+    });
+    
+    // 削除ボタンのイベントリスナーを設定
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const userId = e.currentTarget.dataset.userId;
+            const userName = e.currentTarget.dataset.userName;
+            
+            if (!confirm(`本当に「${userName}」を削除しますか？\nこの操作は取り消せません。`)) {
+                return;
+            }
+            
+            try {
+                // ユーザーを削除（work_logsは外部キー制約でカスケード削除される）
+                const { error } = await supabaseClient
+                    .from('users')
+                    .delete()
+                    .eq('id', userId);
+                
+                if (error) throw error;
+                
+                alert(`「${userName}」を削除しました`);
+                
+                // ダッシュボードを再更新
+                await updateAdminDashboard();
+                
+                console.log('✅ ユーザー削除成功:', userName);
+                
+            } catch (error) {
+                console.error('❌ ユーザー削除エラー:', error);
+                alert('ユーザー削除に失敗しました: ' + error.message);
+            }
+        });
+    });
+    
+    console.log('✅ ユーザー管理リスト表示完了');
+}
+
+function switchAdminChartType(chartType) {
+    // ボタンのアクティブ状態切り替え
+    document.querySelectorAll('[data-admin-chart-type]').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-admin-chart-type="${chartType}"]`).classList.add('active');
+    
+    currentAdminChartType = chartType;
+    updateAdminWorkHoursChart();
+    
+    console.log('📊 管理者グラフ切り替え:', chartType);
+}
+
+async function updateAdminWorkHoursChart() {
+    try {
+        let labels = [];
+        let data = [];
+        let startDate, endDate;
+        
+        // 全ユーザーを取得
+        const { data: allUsers, error: usersError } = await supabaseClient
+            .from('users')
+            .select('id');
+        
+        if (usersError) throw usersError;
+        
+        if (currentAdminChartType === 'daily') {
+            // 過去7日間のデータを取得
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(endDate.getDate() - 6);
+            
+            // 日付ラベル作成
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                labels.push(`${date.getMonth() + 1}/${date.getDate()}`);
+            }
+            
+            // データ取得
+            const { data: logs, error } = await supabaseClient
+                .from('work_logs')
+                .select('*')
+                .gte('date', startDate.toISOString().split('T')[0])
+                .lte('date', endDate.toISOString().split('T')[0])
+                .not('end_time', 'is', null);
+            
+            if (error) throw error;
+            
+            // 日付ごとに集計
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                const dayLogs = logs.filter(log => log.date === dateStr);
+                const usersWithLogs = new Set(dayLogs.map(log => log.user_id));
+                
+                const totalHours = calculateTotalHours(dayLogs);
+                const avgHours = usersWithLogs.size > 0 ? totalHours / usersWithLogs.size : 0;
+                
+                data.push(avgHours);
+            }
+            
+        } else if (currentAdminChartType === 'weekly') {
+            // 過去4週間のデータを取得
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(endDate.getDate() - 27); // 4週間前
+            
+            // 週のラベル作成
+            for (let i = 0; i < 4; i++) {
+                const weekStart = new Date(startDate);
+                weekStart.setDate(startDate.getDate() + (i * 7));
+                labels.push(`${weekStart.getMonth() + 1}/${weekStart.getDate()}週`);
+            }
+            
+            // データ取得
+            const { data: logs, error } = await supabaseClient
+                .from('work_logs')
+                .select('*')
+                .gte('date', startDate.toISOString().split('T')[0])
+                .lte('date', endDate.toISOString().split('T')[0])
+                .not('end_time', 'is', null);
+            
+            if (error) throw error;
+            
+            // 週ごとに集計
+            for (let i = 0; i < 4; i++) {
+                const weekStartDate = new Date(startDate);
+                weekStartDate.setDate(startDate.getDate() + (i * 7));
+                const weekEndDate = new Date(weekStartDate);
+                weekEndDate.setDate(weekStartDate.getDate() + 6);
+                
+                const weekStartStr = weekStartDate.toISOString().split('T')[0];
+                const weekEndStr = weekEndDate.toISOString().split('T')[0];
+                
+                const weekLogs = logs.filter(log => log.date >= weekStartStr && log.date <= weekEndStr);
+                const usersWithLogs = new Set(weekLogs.map(log => log.user_id));
+                
+                const totalHours = calculateTotalHours(weekLogs);
+                const avgHours = usersWithLogs.size > 0 ? totalHours / usersWithLogs.size : 0;
+                
+                data.push(avgHours);
+            }
+        }
+        
+        // グラフ描画
+        renderAdminWorkHoursChart(labels, data);
+        
+        console.log('✅ 管理者グラフ更新完了:', currentAdminChartType);
+        
+    } catch (error) {
+        console.error('❌ 管理者グラフ更新エラー:', error);
+    }
+}
+
+function renderAdminWorkHoursChart(labels, data) {
+    const ctx = document.getElementById('admin-work-hours-chart');
+    
+    // 既存のグラフを破棄
+    if (adminWorkHoursChart) {
+        adminWorkHoursChart.destroy();
+    }
+    
+    // 新しいグラフを作成
+    adminWorkHoursChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentAdminChartType === 'daily' ? '組織平均労働時間 (時間/日)' : '組織平均労働時間 (時間/週)',
+                data: data,
+                borderColor: '#00d9ff',
+                backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#00d9ff',
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
                 pointRadius: 5,
