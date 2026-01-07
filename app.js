@@ -494,7 +494,7 @@ async function addNewUser() {
         
         closeAddUserModal();
         
-        // ログインページのユーザーリストを更新
+        // 【修正1】ログインページのユーザーリストを常に更新（ログイン前でも更新）
         await loadLoginUsers();
         
         // ログイン中の場合はメインアプリのユーザーリストも更新
