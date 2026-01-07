@@ -28,6 +28,7 @@
                 
                 <button id="login-btn" class="btn-primary btn-block">🚀 ログイン</button>
                 <button id="show-register-btn" class="btn-secondary btn-block">➕ 新規登録</button>
+                <button id="admin-login-btn" class="btn-admin btn-block">🔐 管理者ログイン</button>
             </div>
         </div>
     </div>
@@ -44,6 +45,7 @@
         <nav class="nav">
             <button class="nav-btn active" data-page="entry">📝 データ記録</button>
             <button class="nav-btn" data-page="dashboard">📊 My Page</button>
+            <button class="nav-btn" data-page="admin" id="admin-nav-btn" style="display: none;">👑 管理者</button>
         </nav>
 
         <!-- データ記録ページ -->
@@ -82,6 +84,57 @@
                 <!-- 現在のステータス表示 -->
                 <div id="status-display" class="status-display">
                     <p class="status-text">準備完了。戦いを始めよう。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理者ページ -->
+        <div id="admin-page" class="page">
+            <div class="card">
+                <h2 class="card-title">👑 管理者ダッシュボード</h2>
+                
+                <!-- 組織統計 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>組織平均（Daily）</h3>
+                        <p class="stat-value" id="org-daily-avg">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>組織平均（Weekly）</h3>
+                        <p class="stat-value" id="org-weekly-avg">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>総戦士数</h3>
+                        <p class="stat-value" id="total-warriors">0人</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>今週アクティブ</h3>
+                        <p class="stat-value" id="active-warriors">0人</p>
+                    </div>
+                </div>
+
+                <!-- 組織平均労働時間推移グラフ -->
+                <div class="chart-section">
+                    <h3>📈 組織平均労働時間推移</h3>
+                    <div class="chart-toggle">
+                        <button class="chart-toggle-btn active" data-admin-chart-type="daily">Daily</button>
+                        <button class="chart-toggle-btn" data-admin-chart-type="weekly">Weekly</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="admin-work-hours-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 労働時間ランキング -->
+                <div class="ranking-section">
+                    <h3>🏆 労働時間ランキング（今週）</h3>
+                    <div id="ranking-list" class="ranking-list"></div>
+                </div>
+
+                <!-- ユーザー管理 -->
+                <div class="user-management-section">
+                    <h3>👥 ユーザー管理</h3>
+                    <div id="user-management-list" class="user-list"></div>
                 </div>
             </div>
         </div>
