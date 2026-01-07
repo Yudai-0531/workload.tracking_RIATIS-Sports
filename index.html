@@ -7,11 +7,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- ログインページ -->
+    <div id="login-page" class="login-container">
+        <div class="login-card">
+            <h1 class="login-logo">⚡ FIGHTING 24H ⚡</h1>
+            <p class="login-tagline">命を燃やせ。休息も戦いだ。</p>
+            
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="login-user-select">戦士の名前</label>
+                    <select id="login-user-select" class="input-field">
+                        <option value="">選択してください...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">パスワード</label>
+                    <input type="password" id="login-password" class="input-field" placeholder="パスワードを入力">
+                </div>
+                
+                <button id="login-btn" class="btn-primary btn-block">🚀 ログイン</button>
+                <button id="show-register-btn" class="btn-secondary btn-block">➕ 新規登録</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="main-app" style="display: none;">
         <!-- ヘッダー -->
         <header class="header">
             <h1 class="logo">⚡ FIGHTING 24H ⚡</h1>
             <p class="tagline">命を燃やせ。休息も戦いだ。</p>
+            <button id="logout-btn" class="logout-btn">🚪 ログアウト</button>
         </header>
 
         <!-- ナビゲーション -->
@@ -136,6 +162,14 @@
             <div class="form-group">
                 <label for="new-user-name">氏名</label>
                 <input type="text" id="new-user-name" class="input-field" placeholder="山田 太郎">
+            </div>
+            <div class="form-group">
+                <label for="new-user-password">パスワード</label>
+                <input type="password" id="new-user-password" class="input-field" placeholder="パスワードを入力">
+            </div>
+            <div class="form-group">
+                <label for="new-user-password-confirm">パスワード確認</label>
+                <input type="password" id="new-user-password-confirm" class="input-field" placeholder="もう一度入力">
             </div>
             <div class="modal-buttons">
                 <button id="cancel-add-user" class="btn-secondary">キャンセル</button>

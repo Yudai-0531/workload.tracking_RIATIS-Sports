@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
+    password TEXT NOT NULL DEFAULT 'password1234',
     weekly_goal_hours INTEGER DEFAULT 40,
     weekly_vacation_days INTEGER DEFAULT 2,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -36,8 +37,23 @@ ALTER TABLE work_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all access for users" ON users FOR ALL USING (true);
 CREATE POLICY "Enable all access for work_logs" ON work_logs FOR ALL USING (true);
 
+-- 既存テーブルにパスワード列を追加（既にテーブルが存在する場合）
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'password'
+    ) THEN
+        ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT 'password1234';
+    END IF;
+END $$;
+
 -- サンプルデータ挿入（テスト用）
-INSERT INTO users (name, weekly_goal_hours, weekly_vacation_days) VALUES
-('山田太郎', 40, 2),
-('佐藤花子', 35, 2)
+-- 既存ユーザーのパスワードを更新
+UPDATE users SET password = 'password1234' WHERE password IS NULL OR password = '';
+
+-- 新規サンプルユーザー挿入
+INSERT INTO users (name, password, weekly_goal_hours, weekly_vacation_days) VALUES
+('山田太郎', 'password1234', 40, 2),
+('佐藤花子', 'password1234', 35, 2)
 ON CONFLICT DO NOTHING;
