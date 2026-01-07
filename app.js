@@ -13,6 +13,7 @@ let currentUser = null;
 let currentWorkLog = null;
 let workHoursChart = null;
 let currentChartType = 'daily';
+const LOGIN_EXPIRY_DAYS = 30; // ログイン有効期限（日数）
 
 // 名言リスト
 const motivationalQuotes = [
@@ -38,11 +39,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // データベース初期化
     await initializeDatabase();
     
-    // ユーザーリスト読み込み
-    await loadUsers();
+    // ユーザーリスト読み込み（ログインページ用）
+    await loadLoginUsers();
     
     // ダッシュボードの名言を表示
     displayRandomQuote();
+    
+    // ログイン状態チェック
+    checkLoginState();
     
     console.log('✅ 初期化完了');
 });
@@ -87,6 +91,14 @@ async function initializeDatabase() {
 // イベントリスナー設定
 // ==========================================
 function setupEventListeners() {
+    // ログインページ
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('show-register-btn').addEventListener('click', openAddUserModal);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    document.getElementById('login-password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+    
     // ナビゲーション
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => switchPage(btn.dataset.page));
@@ -136,6 +148,244 @@ function switchPage(pageName) {
 }
 
 // ==========================================
+// ログイン管理
+// ==========================================
+async function loadLoginUsers() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('id, name')
+            .order('name');
+        
+        if (error) throw error;
+        
+        const select = document.getElementById('login-user-select');
+        select.innerHTML = '<option value="">選択してください...</option>';
+        
+        data.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name;
+            select.appendChild(option);
+        });
+        
+        console.log(`✅ ${data.length}人のユーザーを読み込みました（ログイン用）`);
+    } catch (error) {
+        console.error('❌ ユーザー読み込みエラー:', error);
+        alert('ユーザー情報の読み込みに失敗しました: ' + error.message);
+    }
+}
+
+async function handleLogin() {
+    const userId = document.getElementById('login-user-select').value;
+    const password = document.getElementById('login-password').value;
+    
+    if (!userId) {
+        alert('ユーザーを選択してください');
+        return;
+    }
+    
+    if (!password) {
+        alert('パスワードを入力してください');
+        return;
+    }
+    
+    try {
+        // ユーザー情報取得
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        
+        if (error) throw error;
+        
+        // パスワード確認
+        if (data.password !== password) {
+            alert('パスワードが正しくありません');
+            return;
+        }
+        
+        // ログイン成功
+        currentUser = userId;
+        
+        // ログイン情報をlocalStorageに保存（1ヶ月有効）
+        const loginData = {
+            userId: userId,
+            userName: data.name,
+            loginTime: Date.now(),
+            expiryTime: Date.now() + (LOGIN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+        };
+        localStorage.setItem('fighting24h_login', JSON.stringify(loginData));
+        
+        console.log('✅ ログイン成功:', data.name);
+        
+        // メインアプリを表示
+        showMainApp();
+        
+        // ユーザーを自動選択
+        await loadUsers();
+        document.getElementById('user-select').value = userId;
+        
+        // 記録ボタンの状態を復元
+        restoreWorkState();
+        
+    } catch (error) {
+        console.error('❌ ログインエラー:', error);
+        alert('ログインに失敗しました: ' + error.message);
+    }
+}
+
+function handleLogout() {
+    if (!confirm('ログアウトしますか？')) {
+        return;
+    }
+    
+    // ログイン情報をクリア
+    localStorage.removeItem('fighting24h_login');
+    currentUser = null;
+    currentWorkLog = null;
+    
+    // ログインページを表示
+    showLoginPage();
+    
+    // 入力欄をクリア
+    document.getElementById('login-user-select').value = '';
+    document.getElementById('login-password').value = '';
+    
+    console.log('✅ ログアウトしました');
+}
+
+function checkLoginState() {
+    const loginDataStr = localStorage.getItem('fighting24h_login');
+    
+    if (!loginDataStr) {
+        // ログインしていない
+        showLoginPage();
+        return;
+    }
+    
+    try {
+        const loginData = JSON.parse(loginDataStr);
+        
+        // 有効期限チェック
+        if (Date.now() > loginData.expiryTime) {
+            // 有効期限切れ
+            localStorage.removeItem('fighting24h_login');
+            alert('ログインの有効期限が切れました。再度ログインしてください。');
+            showLoginPage();
+            return;
+        }
+        
+        // ログイン状態を復元
+        currentUser = loginData.userId;
+        console.log('✅ ログイン状態を復元:', loginData.userName);
+        
+        showMainApp();
+        loadUsers().then(() => {
+            document.getElementById('user-select').value = currentUser;
+            // 記録ボタンの状態を復元
+            restoreWorkState();
+        });
+        
+    } catch (error) {
+        console.error('❌ ログイン状態復元エラー:', error);
+        localStorage.removeItem('fighting24h_login');
+        showLoginPage();
+    }
+}
+
+function showLoginPage() {
+    document.getElementById('login-page').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+}
+
+function showMainApp() {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+}
+
+// ==========================================
+// 記録ボタンの状態保持
+// ==========================================
+function saveWorkState() {
+    if (!currentUser) return;
+    
+    const workState = {
+        userId: currentUser,
+        workLog: currentWorkLog,
+        timestamp: Date.now()
+    };
+    
+    localStorage.setItem('fighting24h_work_state', JSON.stringify(workState));
+    console.log('💾 作業状態を保存しました');
+}
+
+async function restoreWorkState() {
+    if (!currentUser) return;
+    
+    const workStateStr = localStorage.getItem('fighting24h_work_state');
+    
+    if (!workStateStr) {
+        console.log('📝 保存された作業状態はありません');
+        return;
+    }
+    
+    try {
+        const workState = JSON.parse(workStateStr);
+        
+        // ユーザーが一致する場合のみ復元
+        if (workState.userId !== currentUser) {
+            console.log('⚠️ 別のユーザーの作業状態のため復元しません');
+            return;
+        }
+        
+        // 24時間以上経過している場合は復元しない
+        const hoursSinceLastSave = (Date.now() - workState.timestamp) / (1000 * 60 * 60);
+        if (hoursSinceLastSave > 24) {
+            console.log('⚠️ 保存から24時間以上経過しているため復元しません');
+            localStorage.removeItem('fighting24h_work_state');
+            return;
+        }
+        
+        if (workState.workLog) {
+            // データベースで確認
+            const { data, error } = await supabaseClient
+                .from('work_logs')
+                .select('*')
+                .eq('id', workState.workLog.id)
+                .single();
+            
+            if (error || !data || data.end_time) {
+                // ログが存在しないか、既に終了している
+                console.log('⚠️ 作業ログが見つからないか、既に終了しています');
+                localStorage.removeItem('fighting24h_work_state');
+                return;
+            }
+            
+            // 状態を復元
+            currentWorkLog = data;
+            document.getElementById('clock-in-btn').disabled = true;
+            document.getElementById('clock-out-btn').disabled = false;
+            
+            const startTime = new Date(data.start_time);
+            updateStatus(`🔥 戦闘中！ 開始時刻: ${startTime.toLocaleTimeString('ja-JP')}`);
+            
+            console.log('✅ 作業状態を復元しました');
+        }
+        
+    } catch (error) {
+        console.error('❌ 作業状態復元エラー:', error);
+        localStorage.removeItem('fighting24h_work_state');
+    }
+}
+
+function clearWorkState() {
+    localStorage.removeItem('fighting24h_work_state');
+    console.log('🗑️ 作業状態をクリアしました');
+}
+
+// ==========================================
 // ユーザー管理
 // ==========================================
 async function loadUsers() {
@@ -179,11 +429,16 @@ function openAddUserModal() {
     const modal = document.getElementById('add-user-modal');
     modal.classList.add('show');
     document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-password').value = '';
+    document.getElementById('new-user-password-confirm').value = '';
     document.getElementById('new-user-name').focus();
 }
 
 function closeAddUserModal() {
     document.getElementById('add-user-modal').classList.remove('show');
+    document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-password').value = '';
+    document.getElementById('new-user-password-confirm').value = '';
 }
 
 // モーダル外クリックで閉じる
@@ -196,9 +451,26 @@ document.addEventListener('click', (e) => {
 
 async function addNewUser() {
     const name = document.getElementById('new-user-name').value.trim();
+    const password = document.getElementById('new-user-password').value;
+    const passwordConfirm = document.getElementById('new-user-password-confirm').value;
     
     if (!name) {
         alert('名前を入力してください');
+        return;
+    }
+    
+    if (!password) {
+        alert('パスワードを入力してください');
+        return;
+    }
+    
+    if (password !== passwordConfirm) {
+        alert('パスワードが一致しません');
+        return;
+    }
+    
+    if (password.length < 4) {
+        alert('パスワードは4文字以上で設定してください');
         return;
     }
     
@@ -208,6 +480,7 @@ async function addNewUser() {
             .insert([
                 { 
                     name: name,
+                    password: password,
                     weekly_goal_hours: 40,
                     weekly_vacation_days: 2
                 }
@@ -217,14 +490,17 @@ async function addNewUser() {
         if (error) throw error;
         
         console.log('✅ 新規ユーザー登録:', name);
-        alert(`戦士「${name}」を登録しました！`);
+        alert(`戦士「${name}」を登録しました！ログインしてください。`);
         
         closeAddUserModal();
-        await loadUsers();
         
-        // 登録したユーザーを自動選択
-        document.getElementById('user-select').value = data[0].id;
-        currentUser = data[0].id;
+        // ログインページのユーザーリストを更新
+        await loadLoginUsers();
+        
+        // ログイン中の場合はメインアプリのユーザーリストも更新
+        if (currentUser) {
+            await loadUsers();
+        }
         
     } catch (error) {
         console.error('❌ ユーザー登録エラー:', error);
@@ -282,6 +558,9 @@ async function clockIn() {
         document.getElementById('clock-out-btn').disabled = false;
         updateStatus(`🔥 戦闘開始！ 開始時刻: ${now.toLocaleTimeString('ja-JP')}`);
         
+        // 状態を保存
+        saveWorkState();
+        
         console.log('✅ FIGHT START:', now.toLocaleTimeString('ja-JP'));
         
     } catch (error) {
@@ -327,6 +606,9 @@ async function clockOut() {
         console.log('✅ FIGHT END:', now.toLocaleTimeString('ja-JP'), `(${workHours}h)`);
         
         currentWorkLog = null;
+        
+        // 状態をクリア
+        clearWorkState();
         
     } catch (error) {
         console.error('❌ 打刻エラー:', error);

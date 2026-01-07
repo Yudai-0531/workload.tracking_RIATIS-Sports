@@ -484,10 +484,85 @@ label {
 }
 
 /* ==========================================
+   ログインページ
+   ========================================== */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-card {
+    background: var(--dark-navy);
+    border: 2px solid var(--electric-blue);
+    border-radius: 10px;
+    padding: 40px;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 0 50px rgba(0, 217, 255, 0.3);
+    animation: fadeIn 0.5s ease;
+}
+
+.login-logo {
+    font-size: 2.5rem;
+    font-weight: bold;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(255, 0, 85, 0.5);
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.login-tagline {
+    color: var(--silver);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-form {
+    margin-top: 20px;
+}
+
+.btn-block {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.logout-btn {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    padding: 10px 20px;
+    background: var(--darker-navy);
+    border: 2px solid var(--neon-pink);
+    border-radius: 5px;
+    color: var(--white);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: var(--neon-pink);
+    color: var(--darker-navy);
+    box-shadow: 0 0 15px var(--neon-pink);
+}
+
+/* ==========================================
    レスポンシブ
    ========================================== */
 @media (max-width: 768px) {
     .logo {
+        font-size: 1.8rem;
+    }
+    
+    .login-logo {
         font-size: 1.8rem;
     }
     
@@ -505,5 +580,15 @@ label {
     
     .nav-btn {
         max-width: 100%;
+    }
+    
+    .logout-btn {
+        position: static;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .header {
+        padding-bottom: 10px;
     }
 }
